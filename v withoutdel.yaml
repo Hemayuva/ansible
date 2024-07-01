@@ -1,0 +1,92 @@
+---
+- hosts: localhost
+  become: yes
+  tasks:
+    - name: Terminate EC2 instances
+      ec2:
+        instance_ids:
+          - i-0f04d14e46d014a90 # Replace with your instance ID
+        state: absent
+        region: us-east-1
+          aws_access_key:
+          # aws_secret_key:
+      register: ec2_terminated
+
+    - name: Delete security group
+      ec2_group:
+        name: web-sg
+        region: us-east-1
+          #aws_access_key:
+          #aws_secret_key:
+        state: absent
+
+    - name: Delete private route table
+      ec2_vpc_route_table:
+        vpc_id: vpc-01ea6ae677ae1502d  # Replace with your VPC ID
+        region: us-east-1
+        state: absent
+        tags:
+          Name: my-pvt-rt
+        subnets: [ "rtb-0bf37455f55168954" ]  # Replace with your subnet ID
+          #aws_access_key:
+          #aws_secret_key:
+
+    - name: Delete public route table
+      ec2_vpc_route_table:
+        vpc_id: vpc-01ea6ae677ae1502d # Replace with your VPC ID
+        region: us-east-1
+        state: absent
+        tags:
+          Name: my-pub-rt
+        subnets: [ "rtb-0034aa2c9b7cc0901" ]  # Replace with your subnet ID
+          #aws_access_key:
+          #aws_secret_key:
+
+    - name: Delete private subnet
+      ec2_vpc_subnet:
+        vpc_id: vpc-01ea6ae677ae1502d # Replace with your VPC ID
+        region: us-east-1
+        state: absent
+        cidr: 10.0.16.0/20
+        resource_tags:
+          Name: my-pvt
+            #aws_access_key:
+            #aws_secret_key:
+
+    - name: Delete public subnet
+      ec2_vpc_subnet:
+        vpc_id: vpc-01ea6ae677ae1502d #Replace with your VPC ID
+        region: us-east-1
+        state: absent
+        cidr: 10.0.0.0/20
+        resource_tags:
+          Name: my-pub
+            #aws_access_key:
+            # aws_secret_key:
+
+    - name: Detach Internet Gateway
+      ec2_vpc_igw:
+        vpc_id: vpc-01ea6ae677ae1502d  # Replace with your VPC ID
+        region: us-east-1
+        state: detached
+        igw_id: igw-0232f287c732cd62c  # Replace with your Internet Gateway ID
+          #aws_access_key:
+          # aws_secret_key:
+
+    - name: Delete Internet Gateway
+      ec2_vpc_igw:
+        vpc_id: vpc-01ea6ae677ae1502d  # Replace with your VPC ID
+        region: us-east-1
+        state: absent
+        igw_id: igw-0232f287c732cd62c  # Replace with your Internet Gateway ID
+          #aws_access_key:
+          #aws_secret_key:
+
+    - name: Delete VPC
+      ec2_vpc_net:
+        vpc_id: vpc-01ea6ae677ae1502d  # Replace with your VPC ID
+        region: us-east-1
+        state: absent
+          #aws_access_key:
+          #aws_secret_key:
+~
