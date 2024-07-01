@@ -1,0 +1,136 @@
+---
+- name: Delete AWS resources
+  hosts: localhost
+  gather_facts: no
+  vars:
+   aws_access_key: ""
+   aws_secret_key: ""
+   vpc_name: Hema_vpc
+   igw_name: Hema_igw
+   pubsubnet_name: Hema_pub
+   pvtsubnet_name: Hema_pvt
+   pubroute_table_name: Hema_pub_rt
+   pvtroute_table_name: Hema_pvt_rt
+   security_group_name: Hema_sg
+   vpc_cidr_block: '11.0.0.0/16'
+   pubsubnet_cidr_block: '11.0.1.0/24'
+   pvtsubnet_cidr_block: '11.0.2.0/24'
+   region: "us-east-1"
+   pubzone: "us-east-1a"
+   pvtzone: "us-east-1b"
+   image_id: "ami-01b799c439fd5516a"
+   instance_type: "t2.micro"
+   instance_name: inline-EC2
+
+  tasks:
+
+    ## Detach instances from Security Group
+    - name: Get instances attached to security group
+      ec2_instance_info:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        filters:
+          group-id: "sg-0f43fa285873ef019"
+      register: instances_info
+
+    - name: Detach instances from security group
+      ec2_instance:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        instance_ids: "{{ item.instance_id }}"
+        state: stopped  # You may need to stop the instances before detaching them from the security group
+        wait: true
+      loop: "{{ instances_info.instances }}"
+
+    ## Delete instances
+    - name: Get information about the instances
+      ec2_instance_info:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        filters:
+          "tag:Name": "inline-instance"
+      register: ec2_instances
+
+    - name: Terminate instances
+      ec2_instance:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        instance_ids: "{{ item.instance_id }}"
+        state: absent
+      loop: "{{ ec2_instances.instances }}"
+
+    ## Delete Security Group
+    - name: Delete Security Group
+      ec2_group:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        name: "Hema-sg"
+        state: absent
+
+    ## Delete Internet Gateway
+    - name: Detach and Delete Internet Gateway
+      ec2_vpc_igw:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        state: absent
+        vpc_id: "vpc-047aa27355a859393"
+
+    ## Delete Subnets
+    - name: Delete Public Subnet
+      ec2_vpc_subnet:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        state: absent
+        cidr: "11.0.1.0/24"
+        vpc_id: "vpc-047aa27355a859393"
+
+    - name: Delete Private Subnet
+      ec2_vpc_subnet:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        state: absent
+        cidr: "11.0.2.0/24"
+        vpc_id: "vpc-047aa27355a859393"
+
+    ## Delete Route Tables
+    - name: Delete Private Route Table
+      ec2_vpc_route_table:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        state: absent
+        route_table_id: "rtb-001e77bda82497ee6"
+        vpc_id: "vpc-047aa27355a859393"
+
+    - name: Delete Public Route Table
+      ec2_vpc_route_table:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        state: absent
+        route_table_id: "rtb-0e03973553cc23cd5"
+        vpc_id: "vpc-047aa27355a859393"
+    ## Delete VPC
+    - name: Delete VPC
+      ec2_vpc_net:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        state: absent
+        vpc_id: "vpc-047aa27355a859393"  # Replace with your actual VPC ID
+      register: result
+
+    - name: Print task result
+      debug:
+        var: result
+~
+~
+~
