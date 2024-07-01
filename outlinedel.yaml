@@ -1,0 +1,116 @@
+---
+- name: Delete AWS resources
+  hosts: localhost
+  gather_facts: no
+  vars_files:
+    - outline.yaml
+  tasks:
+
+    ## Detach instances from Security Group
+    - name: Get instances attached to security group
+      ec2_instance_info:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        filters:
+          group-id: "sg-08b72ad07d5354baa"
+      register: instances_info
+
+    - name: Detach instances from security group
+      ec2_instance:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        instance_ids: "{{ item.instance_id }}"
+        state: stopped  # You may need to stop the instances before detaching them from the security group
+        wait: true
+      loop: "{{ instances_info.instances }}"
+
+    ## Delete instances
+    - name: Get information about the instances
+      ec2_instance_info:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        filters:
+          "tag:Name": "outline-instance"
+      register: ec2_instances
+
+    - name: Terminate instances
+      ec2_instance:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        instance_ids: "{{ item.instance_id }}"
+        state: absent
+      loop: "{{ ec2_instances.instances }}"
+
+    ## Delete Security Group
+    - name: Delete Security Group
+      ec2_group:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        name: "web-sg"
+        state: absent
+
+    ## Delete Internet Gateway
+    - name: Detach and Delete Internet Gateway
+      ec2_vpc_igw:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        state: absent
+        vpc_id: "vpc-0b94a56e6898f78f1"
+
+    ## Delete Subnets
+    - name: Delete Public Subnet
+      ec2_vpc_subnet:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        state: absent
+        cidr: "11.0.1.0/24"
+        vpc_id: "vpc-0b94a56e6898f78f1"
+
+    - name: Delete Private Subnet
+      ec2_vpc_subnet:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        state: absent
+        cidr: "11.0.2.0/24"
+        vpc_id: "vpc-0b94a56e6898f78f1"
+
+    ## Delete Route Tables
+    - name: Delete Private Route Table
+      ec2_vpc_route_table:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        state: absent
+        route_table_id: "rtb-09b47e8fcc19a490b"
+        vpc_id: "vpc-0b94a56e6898f78f1"
+
+    - name: Delete Public Route Table
+      ec2_vpc_route_table:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        state: absent
+        route_table_id: "rtb-0f8aaa8bec466b37f"
+        vpc_id: "vpc-0b94a56e6898f78f1"
+    ## Delete VPC
+    - name: Delete VPC
+      ec2_vpc_net:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        state: absent
+        vpc_id: "{{ vpc_id }}"
+~
+~
+~
+~
+~
+~
